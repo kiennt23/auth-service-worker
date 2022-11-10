@@ -52,6 +52,10 @@ const getActiveServiceWorker = async () => {
     return registration.active;
 }
 
+const getRegistration = async () => {
+    return await navigator.serviceWorker.getRegistration();
+}
+
 let authUpdateHandlers = [];
 let sessionTimeoutHandlers = [];
 let sessionTimeoutWarningHandlers = [];
@@ -145,8 +149,8 @@ export const unregisterClearTimersHandler = (handler) => {
 /**
 * handle the data sent from the worker by calling each hander in the `handlers` list
 */
-const handleMessage = async () => {
-    navigator.serviceWorker.onmessage = (event) => {
+const handleMessage = () => {
+    navigator.serviceWorker.onmessage = async (event) => {
         if (event.data.type === "AUTH_UPDATE") {
             authUpdateHandlers.forEach(handler => handler(event.data));
         }
@@ -159,7 +163,11 @@ const handleMessage = async () => {
         if (event.data.type === "CLEAR_TIMERS") {
             clearTimersHandlers.forEach(handler => handler(event.data));
         }
+        if (event.data.type === "UPDATE_WORKER_COMMAND") {
+            const registration = await getRegistration();
+            await registration?.update();
+        }
     };
 }
 
-await handleMessage();
+handleMessage();

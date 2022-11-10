@@ -1,5 +1,6 @@
 import localforage from "localforage";
 import { APP_VERSION } from "../version";
+import { debounce, throttle } from "../utils";
 
 const SESSION_TIMEOUT_IN_MILLIS = 60 * 1000; // 1 minute in milliseconds
 const SESSION_WARNING_BUFFER_IN_SECONDS = 5;
@@ -115,13 +116,23 @@ const handleAuthQuery = async (event) => {
     await unicast(event.source, { type: "AUTH_UPDATE", data: authObj });
 }
 
-const handleNewActivity = async (event) => {
+const resetActivityDebounce = debounce(async (event) => {
     await navigator.locks.request("authObj", async () => {
         const activity = event.data.data;
         await resetActivity(activity);
         await clearTimers();
         await setupTimers();
     });
+}, 1000);
+
+const UPDATE_WORKER_INTERVAL = 1000; // Ask for worker update every 1 second
+const sendUpdateWorkerCommandThrottle = throttle(async () => {
+    console.log("Sending UPDATE_WORKER_COMMAND");
+    await broadcast({ type: "UPDATE_WORKER_COMMAND" });
+}, UPDATE_WORKER_INTERVAL);
+
+const handleNewActivity = async (event) => {
+    resetActivityDebounce(event);
 }
 
 const handleInstall = async (_event) => {
@@ -159,6 +170,7 @@ const start = async () => {
     * set up message hadling
     */
     self.onmessage = async (event) => {
+        sendUpdateWorkerCommandThrottle();
         const eventType = event.data.type;
         switch(eventType) {
             case "LOGIN_COMMAND":
