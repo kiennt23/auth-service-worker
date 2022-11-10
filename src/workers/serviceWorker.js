@@ -54,25 +54,30 @@ const unicast = async (source, message) => {
     source.postMessage(message);
 }
 
+const sessionWarningTimeoutDebounce = debounce(async () => {
+    let remainingSeconds = SESSION_WARNING_BUFFER_IN_SECONDS;
+    await broadcast({ type: "SESSION_TIMEOUT_WARNING", remainingSeconds });
+    clearInterval(authObj.sessionWarningInterval);
+    delete authObj.sessionWarningInterval;
+    authObj.sessionWarningInterval = setInterval(async () => {
+        remainingSeconds--;
+        if (remainingSeconds === 0) {
+            return;
+        }
+        await broadcast({ type: "SESSION_TIMEOUT_WARNING", remainingSeconds });
+    }, 1000);
+}, SESSION_TIMEOUT_IN_MILLIS - SESSION_WARNING_BUFFER_IN_MILLIS);
+
+const sessionTimeoutDebounce = debounce(async () => {
+    await broadcast({ type: "SESSION_TIMEOUT" });
+}, SESSION_TIMEOUT_IN_MILLIS);
+
 const setupTimers = async () => {
-    if (authObj.isAuthenticated) {
-        authObj.sessionWarningTimeout = setTimeout(async () => {
-            let remainingSeconds = SESSION_WARNING_BUFFER_IN_SECONDS;
-            await broadcast({ type: "SESSION_TIMEOUT_WARNING", remainingSeconds });
-            clearInterval(authObj.sessionWarningInterval);
-            delete authObj.sessionWarningInterval;
-            authObj.sessionWarningInterval = setInterval(async () => {
-                remainingSeconds--;
-                if (remainingSeconds === 0) {
-                    return;
-                }
-                await broadcast({ type: "SESSION_TIMEOUT_WARNING", remainingSeconds });
-            }, 1000);
-        }, SESSION_TIMEOUT_IN_MILLIS - SESSION_WARNING_BUFFER_IN_MILLIS);
+    const { isAuthenticated, isExpired } = authObj;
+    if (isAuthenticated && !isExpired) {
+        authObj.sessionWarningTimeout = sessionWarningTimeoutDebounce();
+        authObj.sessionTimeout = sessionTimeoutDebounce();
         authObj.expirationTime = (new Date().getTime()) + SESSION_TIMEOUT_IN_MILLIS;
-        authObj.sessionTimeout = setTimeout(async () => {
-            await broadcast({ type: "SESSION_TIMEOUT" });
-        }, SESSION_TIMEOUT_IN_MILLIS);
         await localforage.setItem("authObj", authObj);
     }
 }
@@ -125,7 +130,7 @@ const resetActivityDebounce = debounce(async (event) => {
     });
 }, 1000);
 
-const UPDATE_WORKER_INTERVAL = 5 * 60 * 1000; // Ask for worker update every 5 minutes
+const UPDATE_WORKER_INTERVAL = 60 * 1000; // Ask for worker update every minute
 const sendUpdateWorkerCommandThrottle = throttle(async () => {
     console.log("Sending UPDATE_WORKER_COMMAND");
     await broadcast({ type: "UPDATE_WORKER_COMMAND" });

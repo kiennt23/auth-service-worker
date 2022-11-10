@@ -3,6 +3,7 @@ export const debounce = (func, timeout = 300) => {
     return (...args) => {
         clearTimeout(timer);
         timer = setTimeout(() => { func.apply(this, args) }, timeout);
+        return timer;
     }
 }
 
@@ -14,5 +15,6 @@ export const throttle = (func, timeout = 300) => {
         }
         clearTimeout(timer);
         timer = setTimeout(() => { timer = undefined }, timeout);
+        return timer;
     };
 }
