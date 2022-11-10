@@ -125,7 +125,7 @@ const resetActivityDebounce = debounce(async (event) => {
     });
 }, 1000);
 
-const UPDATE_WORKER_INTERVAL = 1000; // Ask for worker update every 1 second
+const UPDATE_WORKER_INTERVAL = 5 * 60 * 1000; // Ask for worker update every 5 minutes
 const sendUpdateWorkerCommandThrottle = throttle(async () => {
     console.log("Sending UPDATE_WORKER_COMMAND");
     await broadcast({ type: "UPDATE_WORKER_COMMAND" });
