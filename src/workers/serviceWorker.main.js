@@ -7,6 +7,11 @@ export const unregisterNewServiceWorkerHandler = (handler) => {
     newServiceWorkerHandlers = newServiceWorkerHandlers.filter((theHandler) => theHandler !== handler);
 }
 
+const getRegistration = async () => {
+    return await navigator.serviceWorker.getRegistration();
+}
+const UPDATE_WORKER_INTERVAL = 60 * 1000; // Ask for worker update every minute
+
 const initWorker = async () => {
     if ("serviceWorker" in navigator) {
         try {
@@ -33,6 +38,12 @@ const initWorker = async () => {
             console.error(e);
         }
 
+        setInterval(async () => {
+            console.log("Checking for ServiceWorker update");
+            const registration = await getRegistration();
+            await registration?.update();
+        }, UPDATE_WORKER_INTERVAL);
+
         let refreshing = false;
 
         navigator.serviceWorker.addEventListener("controllerchange", () => {
@@ -50,10 +61,6 @@ await initWorker();
 const getActiveServiceWorker = async () => {
     const registration = await navigator.serviceWorker.ready;
     return registration.active;
-}
-
-const getRegistration = async () => {
-    return await navigator.serviceWorker.getRegistration();
 }
 
 let authUpdateHandlers = [];
@@ -162,10 +169,6 @@ const handleMessage = () => {
         }
         if (event.data.type === "CLEAR_TIMERS") {
             clearTimersHandlers.forEach(handler => handler(event.data));
-        }
-        if (event.data.type === "UPDATE_WORKER_COMMAND") {
-            const registration = await getRegistration();
-            await registration?.update();
         }
     };
 }

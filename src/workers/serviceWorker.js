@@ -130,22 +130,16 @@ const resetActivityDebounce = debounce(async (event) => {
     });
 }, 1000);
 
-const UPDATE_WORKER_INTERVAL = 60 * 1000; // Ask for worker update every minute
-const sendUpdateWorkerCommandThrottle = throttle(async () => {
-    console.log("Sending UPDATE_WORKER_COMMAND");
-    await broadcast({ type: "UPDATE_WORKER_COMMAND" });
-}, UPDATE_WORKER_INTERVAL);
-
 const handleNewActivity = async (event) => {
     resetActivityDebounce(event);
 }
 
 const handleInstall = async (_event) => {
-    console.log("Installing");
+    console.log(`Installing ServiceWorker version ${APP_VERSION}`);
 }
 
 const handleActivation = async (_event) => {
-    console.log("Activating");
+    console.log(`Activating ServiceWorker version ${APP_VERSION}`);
     await navigator.locks.request("authObj", async () => {
         authObj = await restoreFromStorage();
         await resetActivity("activate");
@@ -175,7 +169,6 @@ const start = async () => {
     * set up message hadling
     */
     self.onmessage = async (event) => {
-        sendUpdateWorkerCommandThrottle();
         const eventType = event.data.type;
         switch(eventType) {
             case "LOGIN_COMMAND":
