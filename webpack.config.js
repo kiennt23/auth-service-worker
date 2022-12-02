@@ -48,7 +48,6 @@ const config = {
 };
 
 if (isProd) {
-//    config.devtool = "eval-cheap-module-source-map";
     config.optimization = {
         minimizer: [new TerserWebpackPlugin()],
     };

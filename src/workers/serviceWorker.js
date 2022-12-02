@@ -1,6 +1,6 @@
 import localforage from "localforage";
 import { APP_VERSION } from "../version";
-import { debounce, throttle } from "../utils";
+import { debounce } from "../utils";
 
 const SESSION_TIMEOUT_IN_MILLIS = 60 * 1000; // 1 minute in milliseconds
 const SESSION_WARNING_BUFFER_IN_SECONDS = 5;
@@ -124,7 +124,7 @@ const handleAuthQuery = async (event) => {
 const resetActivityDebounce = debounce(async (event) => {
     await navigator.locks.request("authObj", async () => {
         const activity = event.data.data;
-        await resetActivity(activity);
+        resetActivity(activity);
         await clearTimers();
         await setupTimers();
     });
@@ -142,7 +142,7 @@ const handleActivation = async (_event) => {
     console.log(`Activating ServiceWorker version ${APP_VERSION}`);
     await navigator.locks.request("authObj", async () => {
         authObj = await restoreFromStorage();
-        await resetActivity("activate");
+        resetActivity("activate");
         await broadcast({ type: "AUTH_UPDATE", data: authObj });
     });
 }
